@@ -775,6 +775,11 @@
   // ======================================================
   // VERİ YÜKLEME (BACKEND'DEN ÇEKME) & KPI HESABI
   // ======================================================
+const W1 = 0.25;  // SAIDI
+const W2 = 0.25;  // SAIFI
+const W3 = 0.10;  // Maliyet
+const W4 = 0.40;  // Sağlık / risk
+  
   let assetsData = [];
   let BUDGET = 60;  // Backend'den de güncellenecek
   
@@ -947,6 +952,80 @@
   // ---------------------------------------------------------
   // OPTİMİZASYON BUTONU (BACKEND'LE ENTEGRE)
   // ---------------------------------------------------------
+  function runOptimizationFrontend(maxItems = 20) {
+  // Excel sırasına göre ilk 20 varlık
+  const assets = assetsData.slice(0, 20);
+
+  if (!assets.length) {
+    return {
+      status: "Empty",
+      selected: [],
+      selected_count: 0,
+      used_budget: 0,
+      budget: BUDGET,
+      objective_value: 0,
+    };
+  }
+
+  const maxSaidi = Math.max(...assets.map(a => a.saidi || 0), 1);
+  const maxSaifi = Math.max(...assets.map(a => a.saifi || 0), 1);
+  const maxCost  = Math.max(...assets.map(a => a.cost  || 0), 1);
+
+  const scored = assets.map(a => {
+    const normSaidi = (a.saidi || 0) / maxSaidi;
+    const normSaifi = (a.saifi || 0) / maxSaifi;
+    const normHealthRisk = (100 - (a.health_ui || 0)) / 100; // sağlık düşükse risk yüksek
+    const normCost = (a.cost || 0) / maxCost;
+
+    const score =
+      W1 * normSaidi +
+      W2 * normSaifi +
+      W3 * normCost +
+      W4 * normHealthRisk;
+
+    return { ...a, score };
+  });
+
+  // skor / maliyet oranına göre sırala
+  scored.sort((a, b) => {
+    const rA = a.score / Math.max(a.cost || 0.1, 0.1);
+    const rB = b.score / Math.max(b.cost || 0.1, 0.1);
+    return rB - rA;
+  });
+
+  const selected = [];
+  let usedBudget = 0;
+  let totalObj = 0;
+
+  for (const item of scored) {
+    if (selected.length >= maxItems) break;
+    const cost = item.cost || 0;
+
+    if (usedBudget + cost > BUDGET) continue;
+
+    selected.push({
+      talep_no: item.talep_no,
+      grup: item.group,
+      tur: item.operation_type,
+      maliyet: cost,
+      risk_label: item.risk_label,
+      score: Number(item.score.toFixed(4)),
+    });
+
+    usedBudget += cost;
+    totalObj += item.score;
+  }
+
+  return {
+    status: "OK",
+    selected,
+    selected_count: selected.length,
+    used_budget: usedBudget,
+    budget: BUDGET,
+    objective_value: Number(totalObj.toFixed(4)),
+  };
+}
+
   document.getElementById("run-optimization-btn").onclick = () => {
     const resultSpan = document.getElementById("opt-result");
     const statusSpan = document.getElementById("opt-status");
@@ -969,11 +1048,8 @@
   
       setTimeout(async () => {
         try {
-          const W1 = 0.25;  // SAIDI
-          const W2 = 0.25;  // SAIFI
-          const W3 = 0.10;  // Maliyet
-          const W4 = 0.40;  // Sağlık / risk
-  
+          const data = runOptimizationFrontend(20);
+          
           btn.classList.remove("loading");
           btn.textContent = "Optimizasyonu Tekrar Çalıştır";
           statusSpan.style.display = "none";
