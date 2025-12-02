@@ -969,8 +969,10 @@
   
       setTimeout(async () => {
         try {
-          const res = await fetch("/api/optimize");
-          const data = await res.json();
+          const W1 = 0.25;  // SAIDI
+          const W2 = 0.25;  // SAIFI
+          const W3 = 0.10;  // Maliyet
+          const W4 = 0.40;  // Sağlık / risk
   
           btn.classList.remove("loading");
           btn.textContent = "Optimizasyonu Tekrar Çalıştır";
