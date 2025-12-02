@@ -189,20 +189,3 @@ def api_optimize():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
-const res = await fetch("/api/optimize");
-const data = await res.json();
-``` :contentReference[oaicite:3]{index=3}  
-
-GitHub’da böyle bir endpoint yok.  
-O yüzden aynı mantığı JS ile yapalım.
-
-### 3.1. JS tarafına ağırlıklar
-
-`index.html`’de script kısmının başına (herhangi bir yerde global) şunu ekle:
-
-```js
-const W1 = 0.25;  // SAIDI
-const W2 = 0.25;  // SAIFI
-const W3 = 0.10;  // Maliyet
-const W4 = 0.40;  // Sağlık / risk
