@@ -780,7 +780,7 @@
   
   async function loadAssets() {
     try {
-      const res = await fetch("/api/assets");
+      const res = await fetch("assets.json");   // aynı klasördeki JSON
       const payload = await res.json();
   
       BUDGET = payload.budget ?? 60;
